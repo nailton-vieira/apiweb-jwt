@@ -21,7 +21,7 @@ app.listen(3000, () => console.log("Servidor escutando na porta 3000..."));
 //authentication
 app.post('/login', (req, res, next) => {
     //esse teste abaixo deve ser feito no seu banco de dados
-    if(req.body.user === 'luiz' && req.body.password === '123'){
+    if(req.body.user === 'adm' && req.body.password === '123'){
       //auth ok
       const id = 1; //esse id viria do banco de dados
       const token = jwt.sign({ id }, process.env.SECRET, {
