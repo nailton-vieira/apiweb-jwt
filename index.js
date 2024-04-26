@@ -1,53 +1,54 @@
 //index.js
-require("dotenv-safe").config();
-const jwt = require('jsonwebtoken');
-
+const http = require ('http');
 const express = require('express'); 
 const app = express(); 
- 
-app.use(express.json());
+const bodyParser = require ('body-parser');
+const jwt = require('jsonwebtoken');
+const SECRET = 'acessook'
 
-app.get('/', (req, res, next) => {
+app.use(bodyParser.json());
+
+app.get('/', (req, res) => {
     res.json({message: "Tudo ok por aqui!"});
 })
 
-app.get('/clientes', verifyJWT, (req, res, next) => { 
-    console.log("Retornou todos clientes!");
-    res.json([{id:1,nome:'Nailton'}]);
+app.get('/clientes', verifyJWT,(req, res) => { 
+  console.log(req.userId + 'fez essa chamada!');  
+    res.json([{ id:1, nome:'Nailton'}]);
+
 }) 
 
-app.listen(3000, () => console.log("Servidor escutando na porta 3000..."));
-
-//authentication
-app.post('/login', (req, res, next) => {
-    //esse teste abaixo deve ser feito no seu banco de dados
-    if(req.body.user === 'luiz' && req.body.password === '123'){
-      //auth ok
-      const id = 1; //esse id viria do banco de dados
-      const token = jwt.sign({ id }, process.env.SECRET, {
-        expiresIn: 300 // expires in 5min
-      });
-      return res.json({ auth: true, token: token });
-    }
-    
-    res.status(500).json({message: 'Login inválido!'});
+app.post('/login', (req, res) => {
+  if(req.body.user === 'luiz' && req.body.password === '123'){
+    const token = jwt.sign({userId: 1}, SECRET, {expiresIn: 300});
+    return res.json({auth: true, token});
+  }
+    res.status(401).end();
+  
 })
 
+const blackList = [];
+blackList.push(req.headers['x-access-token']);
 
 app.post('/logout', function(req, res) {
-    res.json({ auth: false, token: null });
+    res.end();
 })
 
 
-function verifyJWT(req, res, next){
-    const token = req.headers['authorization'];
-    if (!token) return res.status(401).json({ auth: false, message: 'No token provided.' });
-    
-    jwt.verify(token, process.env.SECRET, function(err, decoded) {
-      if (err) return res.status(500).json({ auth: false, message: 'Failed to authenticate token.' });
-      
-      // se tudo estiver ok, salva no request para uso posterior
-      req.userId = decoded.id;
-      next();
-    });
+function verifyJWT( req, res, next){
+const token = req.headers['x-access-token'];
+const index = blackList.findIndex(item => item === token);
+if(index !== -1 ) return res.status(401).end();
+jwt.verify(token, SECRET, (err, decoded ) => {
+      if (err) return res.status(401).end();
+    req.userId = decoded.userId;
+
+    next();
+
+    })
+
 }
+
+const server = http.createServer(app);
+server.listen(3000);
+console.log("Servidor escutando na porta 3000...")
